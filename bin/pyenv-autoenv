@@ -1,46 +1,73 @@
-#!/bin/bash
-# virtualenv-auto-activate.sh
-#
-# Installation:
-#   Add this line to your .bashrc or .bash-profile:
-#
-#       source /path/to/virtualenv-auto-activate.sh
-#
+#!/bin/env bash
 
 function _python_version_auto_install() {
-    if [ -e ".python-version" ];then
-        _PY_VERSION=$(cat .python-version)
-        if [ ! -d "$HOME/.pyenv/versions/$_PY_VERSION" ];then
-            echo "Installing Python $_PY_VERSION"
-            pyenv install $_PY_VERSION
-            pyenv rehash
-        fi
+    if [ -z "$1" ];then return; fi
 
+    if [ -f .python-version ];then
+        _PY_VERSION=$(cat .python-version)
+    elif [ $(basename "$1") == ".python-version" ];then
+        _PY_VERSION=$(cat "$1")
+    else
+        _PY_VERSION=$(cat $(_virtualenv_search_up '.python-version'))
+    fi
+
+    if [ ! -d "$HOME/.pyenv/versions/$_PY_VERSION" ];then
+        echo "Installing Python $_PY_VERSION"
+        pyenv install ${_PY_VERSION}
+        pyenv rehash
     fi
 }
 
 function _virtualenv_auto_activate() {
     if [ -e ".python-env" ]; then
-        # Check for file containing name of virtualenv
-        if [ -f ".python-env" ]; then
-          _VENV_PATH=$WORKON_HOME/$(cat .python-env)
-        else
-          return
-        fi
+        _PYTHON_ENV=".python-env"
+    else
+        _PYTHON_ENV=$(_virtualenv_search_up ".python-env")
+    fi
 
-        # Check to see if already activated to avoid redundant activating
-        if [ "$VIRTUAL_ENV" != $_VENV_PATH ]; then
-          _VENV_NAME=$(basename $_VENV_PATH)
-          # if venv does not exists create
-          if [ -d "$_VENV_PATH" ];then
-            workon $_VENV_NAME
-          else
-            echo "Virtualenv $_VENV_NAME does not exist. Adding with current python -> $(cat .python-version)"
-            mkvirtualenv $_VENV_NAME --python $HOME/.pyenv/versions/$(cat .python-version)/bin/python
-            workon $_VENV_NAME
-          fi
-          # echo Activated virtualenv \"$_VENV_NAME\".
+    if [ -f "$_PYTHON_ENV" ];then
+        # echo "_PYTHON_ENV=$_PYTHON_ENV"
+        _VENV_PATH=${WORKON_HOME}/$(cat "$_PYTHON_ENV")
+
+        # Check to see if already activated to avoid redundant ${_VENV_NAME}ng
+        if [ "$VIRTUAL_ENV" != ${_VENV_PATH} ]; then
+            _VENV_NAME=$(basename ${_VENV_PATH})
+
+            # if virtualenv does not exists create
+            if [ -d "$_VENV_PATH" ];then
+                workon ${_VENV_NAME}
+            else
+                if [ ! -f .pythono-version ];then
+                    _PYTHON_VERSION=$(_virtualenv_search_up ".python-version")
+                fi
+
+                echo "Virtualenv $_VENV_NAME does not exist. Adding with current python -> $(cat "$_PYTHON_VERSION")"
+                mkvirtualenv ${_VENV_NAME} --python $HOME/.pyenv/versions/$(cat "$_PYTHON_VERSION")/bin/python
+                workon ${_VENV_NAME}
+            fi
         fi
+    else
+        _virtualenv_auto_deactivate
+    fi
+}
+
+function _virtualenv_search_up() {
+    _CURRENT_DIR=`pwd`
+    while [ "$_CURRENT_DIR" != "/" ]; do
+        while read _FILE_PATH; do
+            if [ "$(basename "$_FILE_PATH")" == "$1" ];then
+                if [ -f ${_FILE_PATH} ]; then
+                   echo "$_FILE_PATH"
+                fi
+            fi
+        done < <(find "$_CURRENT_DIR" -maxdepth 1 -name "$1")
+        _CURRENT_DIR=`dirname "$_CURRENT_DIR"`
+    done
+}
+
+function _virtualenv_auto_deactivate() {
+    if type "deactivate" >/dev/null 2>&1; then
+        deactivate
     fi
 }
 
