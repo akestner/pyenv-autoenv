@@ -2,11 +2,11 @@
 
 1-) first install pyenv:
 
-    git clone git@github.com:akestner/pyenv-autoenv.git ~/.pyenv
+    git clone git://github.com/yyuu/pyenv.git ~/.pyenv
     
 2-) then just: 
 
-    git clone git://github.com/andersoncardoso/pyenv-autoenv.git ~/.pyenv/plugins/pyenv-autoenv
+    git clone git://github.com/akestner/pyenv-autoenv.git ~/.pyenv/plugins/pyenv-autoenv
     
 3-) add these lines to your .bashrc or .zshrc:
 
