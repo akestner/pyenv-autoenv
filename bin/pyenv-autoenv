@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
 function _python_version_auto_install() {
     if [ -z "$1" ];then return; fi
