@@ -1,6 +1,14 @@
-#!/bin/env bash
+#!/bin/bash
+# pyenv-autoenv
+##
+# Maintainer: Alex Kestner <alex.kestner@gmail.com>
+#
+# Usage/Installation:
+#   - echo 'source ~/.pyenv/plugins/pyenv-autoenv/bin/pyenv-autoenv' >> ~/.profile  (or ~/.bash_profile, ~/.bashrc, etc)
+##
 
-function _python_version_auto_install() {
+# installs python version found in .python-version file
+_python_version_auto_install(){
     if [ -z "$1" ];then return; fi
 
     if [ -f .python-version ];then
@@ -18,7 +26,9 @@ function _python_version_auto_install() {
     fi
 }
 
-function _virtualenv_auto_activate() {
+# creates (if necessary) and activates the virtualenv named in .python-env
+# if no .python-env file is present, calls _virtualenv_auto_deactivate to deactive virtualenv
+_virtualenv_auto_activate(){
     if [ -e ".python-env" ]; then
         _PYTHON_ENV=".python-env"
     else
@@ -26,18 +36,18 @@ function _virtualenv_auto_activate() {
     fi
 
     if [ -f "$_PYTHON_ENV" ];then
-        # echo "_PYTHON_ENV=$_PYTHON_ENV"
+        #echo "_PYTHON_ENV=$_PYTHON_ENV"
         _VENV_PATH=${WORKON_HOME}/$(cat "$_PYTHON_ENV")
 
         # Check to see if already activated to avoid redundant ${_VENV_NAME}ng
         if [ "$VIRTUAL_ENV" != ${_VENV_PATH} ]; then
             _VENV_NAME=$(basename ${_VENV_PATH})
 
-            # if virtualenv does not exists create
+            # if virtualenv does not exist, create it
             if [ -d "$_VENV_PATH" ];then
                 workon ${_VENV_NAME}
             else
-                if [ ! -f .pythono-version ];then
+                if [ ! -f .python-version ];then
                     _PYTHON_VERSION=$(_virtualenv_search_up ".python-version")
                 fi
 
@@ -51,7 +61,8 @@ function _virtualenv_auto_activate() {
     fi
 }
 
-function _virtualenv_search_up() {
+# searches parent directories of `pwd` for a file with the filename passed to $1
+_virtualenv_search_up(){
     _CURRENT_DIR=`pwd`
     while [ "$_CURRENT_DIR" != "/" ]; do
         while read _FILE_PATH; do
@@ -65,20 +76,23 @@ function _virtualenv_search_up() {
     done
 }
 
-function _virtualenv_auto_deactivate() {
+# deactivate the current virtualenv using `deactivate`
+_virtualenv_auto_deactivate(){
     if type "deactivate" >/dev/null 2>&1; then
         deactivate
     fi
 }
 
-function _autoenv_activate() {
+# facade-ish function to simplify setting PROMPT_COMMAND
+_autoenv_activate(){
     _python_version_auto_install
     _virtualenv_auto_activate
 }
 
+# and finally, to make this all work
 export PROMPT_COMMAND=_autoenv_activate
 if [ -n "$ZSH_VERSION" ]; then
-  function chpwd() {
-    _autoenv_activate
-  }
+    chpwd(){
+        _autoenv_activate
+    }
 fi
