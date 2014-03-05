@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # pyenv-autoenv
 ##
 # Maintainer: Alex Kestner <alex.kestner@gmail.com>
@@ -11,17 +11,17 @@
 _python_version_auto_install(){
     if [ -z "$1" ];then return; fi
 
-    if [ -f .python-version ];then
-        _PY_VERSION=$(cat .python-version)
-    elif [ $(basename "$1") == ".python-version" ];then
+    if [ -e ./.python-version ];then
+        _PY_VERSION=$(cat ./.python-version)
+    elif [ "$(basename "$1")" == ".python-version" ];then
         _PY_VERSION=$(cat "$1")
     else
-        _PY_VERSION=$(cat $(_virtualenv_search_up '.python-version'))
+        _PY_VERSION="$(cat "$(_virtualenv_search_up '.python-version')")"
     fi
 
-    if [ ! -d "$HOME/.pyenv/versions/$_PY_VERSION" ];then
-        echo "Installing Python $_PY_VERSION"
-        pyenv install ${_PY_VERSION}
+    if [ ! -d "$PYENV_ROOT/versions/$_PY_VERSION" ];then
+        echo -e "Installing Python $_PY_VERSION"
+        pyenv install "${_PY_VERSION}"
         pyenv rehash
     fi
 }
@@ -30,30 +30,48 @@ _python_version_auto_install(){
 # if no .python-env file is present, calls _virtualenv_auto_deactivate to deactive virtualenv
 _virtualenv_auto_activate(){
     if [ -e ".python-env" ]; then
-        _PYTHON_ENV=".python-env"
+        _PYTHON_ENV='./.python-env'
     else
-        _PYTHON_ENV=$(_virtualenv_search_up ".python-env")
+        _PYTHON_ENV=$(_virtualenv_search_up '.python-env')
     fi
 
-    if [ -f "$_PYTHON_ENV" ];then
-        #echo "_PYTHON_ENV=$_PYTHON_ENV"
-        _VENV_PATH=${WORKON_HOME}/$(cat "$_PYTHON_ENV")
+    if [[ -f $_PYTHON_ENV ]];then
+        _VENV_PATH="$WORKON_HOME"/$(cat "$_PYTHON_ENV")
+        
+        # echo -e "_VENV_PATH=$_VENV_PATH"
 
         # Check to see if already activated to avoid redundant ${_VENV_NAME}ng
-        if [ "$VIRTUAL_ENV" != ${_VENV_PATH} ]; then
-            _VENV_NAME=$(basename ${_VENV_PATH})
+        if [ "$VIRTUAL_ENV" != "${_VENV_PATH}" ]; then
+            _VENV_NAME=$(basename "${_VENV_PATH}")
+
+            # echo -e "_VENV_NAME=$_VENV_NAME"
 
             # if virtualenv does not exist, create it
             if [ -d "$_VENV_PATH" ];then
-                workon ${_VENV_NAME}
+                workon "${_VENV_NAME}"
             else
-                if [ ! -f .python-version ];then
-                    _PYTHON_VERSION=$(_virtualenv_search_up ".python-version")
+                if [ -e '.python-version' ];then
+                    _PYTHON_VERSION='./.python-version'
+                else
+                    _PYTHON_VERSION=$(_virtualenv_search_up '.python-version')
                 fi
 
-                echo "Virtualenv $_VENV_NAME does not exist. Adding with current python -> $(cat "$_PYTHON_VERSION")"
-                mkvirtualenv ${_VENV_NAME} --python $HOME/.pyenv/versions/$(cat "$_PYTHON_VERSION")/bin/python
-                workon ${_VENV_NAME}
+                # echo -e "_PYTHON_VERSION=$_PYTHON_VERSION"
+
+                # fallback to `pyenv version-name`
+                if [ ! -z "$_PYTHON_VERSION" ]; then
+                    PYTHON_VERSION=$(pyenv version-name)
+                else
+                    PYTHON_VERSION=$(cat "$_PYTHON_VERSION")
+                fi
+
+                # echo -e "PYTHON_VERSION=$PYTHON_VERSION"
+
+                echo -e "Virtualenv $_VENV_NAME does not exist. Adding with current python -> ${PYTHON_VERSION}"
+                mkvirtualenv "${_VENV_NAME}" --python "${PYENV_ROOT}"/versions/"${PYTHON_VERSION}"/bin/python
+                workon "${_VENV_NAME}"
+
+                unset PYTHON_VERSION
             fi
         fi
     else
@@ -63,16 +81,16 @@ _virtualenv_auto_activate(){
 
 # searches parent directories of `pwd` for a file with the filename passed to $1
 _virtualenv_search_up(){
-    _CURRENT_DIR=`pwd`
+    _CURRENT_DIR=$(pwd)
     while [ "$_CURRENT_DIR" != "/" ]; do
         while read _FILE_PATH; do
             if [ "$(basename "$_FILE_PATH")" == "$1" ];then
-                if [ -f ${_FILE_PATH} ]; then
+                if [ -f "${_FILE_PATH}" ]; then
                    echo "$_FILE_PATH"
                 fi
             fi
         done < <(find "$_CURRENT_DIR" -maxdepth 1 -name "$1")
-        _CURRENT_DIR=`dirname "$_CURRENT_DIR"`
+        _CURRENT_DIR=$(dirname "$_CURRENT_DIR")
     done
 }
 
