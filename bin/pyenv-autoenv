@@ -89,7 +89,7 @@ _virtualenv_search_up(){
                    echo "$_FILE_PATH"
                 fi
             fi
-        done < <(find "$_CURRENT_DIR" -maxdepth 1 -name "$1")
+        done < <(find "$_CURRENT_DIR" -maxdepth 1 -wholename "$1")
         _CURRENT_DIR=$(dirname "$_CURRENT_DIR")
     done
 }
